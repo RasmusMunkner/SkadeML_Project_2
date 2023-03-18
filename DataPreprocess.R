@@ -32,7 +32,8 @@ ProcessedData <- freMPL1 %>%
   TreeModelGrouping("VehPrice", "ClaimAmount", maxdepth = 2) %>% 
   TreeModelGrouping("VehClass", "ClaimAmount", maxdepth = 2) %>% 
   TreeModelGrouping("RiskVar", "ClaimAmount", maxdepth = 2) %>% 
-  dummy_cols(remove_selected_columns = T, remove_first_dummy = T)
+  dummy_cols(remove_selected_columns = T, remove_first_dummy = T) %>% 
+  dplyr::rename_all(list(~make.names(.)))
   
 
 #Writing the dataset to .csv files
