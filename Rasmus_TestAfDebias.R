@@ -22,7 +22,7 @@ XgbLearner <- auto_tuner(tuner = tnr("random_search"),
                          learner = XgbLearnerTemplate,
                          resampling = rsmp("cv", folds = 3),
                          measure = msr("regr.mse"),
-                         terminator = trm("evals", n_evals = ))
+                         terminator = trm("evals", n_evals = 10))
 
 #XgbLearner$train(Task)
 

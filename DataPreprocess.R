@@ -26,6 +26,7 @@ ProcessedData <- freMPL1 %>%
          VehEngine = fct_collapse(VehEngine,
                                   injection=c("injection", "electric", "GPL")),
          HasKmLimit = factor(HasKmLimit)) %>% 
+  mutate(ClaimAmount = pmax(ClaimAmount, 0)) %>% 
   TreeModelGrouping("SocioCateg", "ClaimAmount", maxdepth = 2) %>% 
   TreeModelGrouping("VehAge", "ClaimAmount", maxdepth = 2) %>% 
   TreeModelGrouping("VehMaxSpeed", "ClaimAmount", maxdepth = 2) %>% 
