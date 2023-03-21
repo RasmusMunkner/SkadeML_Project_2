@@ -44,6 +44,7 @@ Data %>%
 
 #Mean-Debiasing
 AugmentedPredictionData <- Data %>% 
+  add_column(BiasPredict = XgbLearner$predict_newdata(.)$response) %>% 
   select(-GoodPredictor) %>% 
   mutate(rowid = row_number()) %>% 
   dplyr::cross_join(Data %>% 
@@ -51,7 +52,12 @@ AugmentedPredictionData <- Data %>%
                summarise(Prob = n() / nrow(.))) %>% 
   add_column(Predictions = XgbLearner$predict_newdata(.)$response) %>% 
   group_by(rowid) %>% 
-  summarise(Predicted = sum(Predictions * Prob))
+  summarise(Predicted = sum(Predictions * Prob), BiasedPredict = mean(BiasPredict))
+
+Data %>% 
+  cbind(., AugmentedPredictionData) %>% 
+  ggplot(aes(x = Exposure, y = Predicted, color = as.factor(GoodPredictor))) +
+  geom_smooth(method = "gam")
 
 Data %>% 
   cbind(., AugmentedPredictionData) %>% 
