@@ -12,8 +12,10 @@ library(rsample)
 
 ##### 0. Prepare data #####
 ##### lr: set task
+
 ProcessedData2 <- ProcessedData %>%
   distinct()
+
 colnames(ProcessedData2)<-c("Var1", "Var2", "Var3", "Var4", "ClaimAmount", "Var6", "Var7", "Var8", "Var9", "Var10", 
                            "Var11", "Var12", "Var13", "Var14", "Var15", "Var16", "Var17", "Var18", "Var19", 
                            "Var20", "Var21", "Var22", "Var23", "Var24", "Var25", "Var26", "Var27", "Var28", 
