@@ -19,23 +19,35 @@ source("Rasmus_Funktioner.R")
 #Load the data into memory
 data("freMPL1")
 
+#Old - Dummy encoding
+# ProcessedData <- freMPL1 %>% 
+#   select(-c(RecordBeg, RecordEnd, ClaimInd)) %>% 
+#   mutate(VehEnergy = fct_collapse(VehEnergy,
+#                                   regular=c("regular", "eletric", "GPL")),
+#          VehEngine = fct_collapse(VehEngine,
+#                                   injection=c("injection", "electric", "GPL")),
+#          HasKmLimit = factor(HasKmLimit)) %>% 
+#   mutate(ClaimAmount = pmax(ClaimAmount, 0)) %>% 
+#   TreeModelGrouping("SocioCateg", "ClaimAmount", maxdepth = 2) %>% 
+#   TreeModelGrouping("VehAge", "ClaimAmount", maxdepth = 2) %>% 
+#   TreeModelGrouping("VehMaxSpeed", "ClaimAmount", maxdepth = 2) %>% 
+#   TreeModelGrouping("VehPrice", "ClaimAmount", maxdepth = 2) %>% 
+#   TreeModelGrouping("VehClass", "ClaimAmount", maxdepth = 2) %>% 
+#   TreeModelGrouping("RiskVar", "ClaimAmount", maxdepth = 2) %>% 
+#   dummy_cols(remove_selected_columns = T, remove_first_dummy = T) %>% 
+#   dplyr::rename_all(list(~make.names(.)))
+
+#New - Numeric encoding
 ProcessedData <- freMPL1 %>% 
   select(-c(RecordBeg, RecordEnd, ClaimInd)) %>% 
   mutate(VehEnergy = fct_collapse(VehEnergy,
                                   regular=c("regular", "eletric", "GPL")),
          VehEngine = fct_collapse(VehEngine,
-                                  injection=c("injection", "electric", "GPL")),
-         HasKmLimit = factor(HasKmLimit)) %>% 
-  mutate(ClaimAmount = pmax(ClaimAmount, 0)) %>% 
-  TreeModelGrouping("SocioCateg", "ClaimAmount", maxdepth = 2) %>% 
-  TreeModelGrouping("VehAge", "ClaimAmount", maxdepth = 2) %>% 
-  TreeModelGrouping("VehMaxSpeed", "ClaimAmount", maxdepth = 2) %>% 
-  TreeModelGrouping("VehPrice", "ClaimAmount", maxdepth = 2) %>% 
-  TreeModelGrouping("VehClass", "ClaimAmount", maxdepth = 2) %>% 
-  TreeModelGrouping("RiskVar", "ClaimAmount", maxdepth = 2) %>% 
-  dummy_cols(remove_selected_columns = T, remove_first_dummy = T) %>% 
-  dplyr::rename_all(list(~make.names(.)))
-  
+                                  injection=c("injection", "electric", "GPL"))) %>% 
+  mutate(ClaimAmount = pmax(ClaimAmount, 0)) %>%
+  MeanResponseGroupingMultiple(columns = c("VehAge", "Gender", "MariStat", "SocioCateg",
+                                           "VehUsage", "VehBody", "VehPrice", "VehEngine", "VehEnergy",
+                                           "VehMaxSpeed", "VehClass", "Garage"))
 
 #Writing the dataset to .csv files
 source("Rasmus_Funktioner.R")

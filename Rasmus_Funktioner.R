@@ -48,6 +48,29 @@ TreeModelGrouping <- function(.data, .feature, .target,
   
 }
 
+#Grupperer kategorisk variable efter middelværdi i en anden kolonne.
+MeanResponseGrouping <- function(df, colname, target_colname = "ClaimAmount"){
+  df %>% 
+    left_join(
+      df %>% 
+        group_by(.data[[colname]]) %>% 
+        summarise(Statistic = mean(.data[[target_colname]])) %>% 
+        arrange(Statistic) %>% 
+        mutate(tmp = Statistic %>% factor() %>% as.numeric()) %>% 
+        select(-Statistic)
+    ) %>% 
+    mutate(!!colname := tmp) %>% 
+    select(-tmp) %>% 
+    return()
+}
+
+MeanResponseGroupingMultiple <- function(df, columns, target_colname = "ClaimAmount"){
+  for (col in columns){
+    df <- MeanResponseGrouping(df, colname = col, target_colname = target_colname)
+  }
+  return(df)
+}
+
 #Ensure that variables are of the correct type
 # freMPL1 <- freMPL1 %>% 
 #   mutate(SocioCateg = SocioCateg %>%
