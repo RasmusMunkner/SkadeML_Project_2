@@ -100,7 +100,6 @@ ProcessedData$Garage<-as.numeric(ProcessedData$Garage)
 
 
 
-
 #Writing the dataset to .csv files
 source("Rasmus_Funktioner.R")
 WriteData(ProcessedData, "processed_df")
