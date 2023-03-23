@@ -9,6 +9,7 @@ library(xgboost)
 library(mlr3tuning)
 library(patchwork)
 library(gridExtra)
+library(waterfalls)
 remotes::install_github("PlantedML/glex")
 library(glex)
 source("Rasmus_Funktioner.R")
@@ -19,6 +20,7 @@ source("Rasmus_Funktioner.R")
 #Data <- ReadData("processed_df")
 Data <- ProcessedData
 
+#Training data on subset without duplicates
 DataTrain <- Data %>% 
   distinct()
 
@@ -44,6 +46,8 @@ XgbLearner <- auto_tuner(tuner = tnr("random_search"),
 XgbLearner$tuning_result
 
 
+#We prepare data and labels to use in the native xgboost function
+#This we need to do in order to use the "glex" function later on.
 
 DataXgboost <- DataTrain %>% select(-ClaimAmount) %>% as.data.frame()
 ResponseXgboost <- DataTrain %>% select(ClaimAmount) %>% unlist()
@@ -56,12 +60,23 @@ XgboostModel <- xgboost(data=DataXgboost %>% as.matrix(),
                         monotone_constraint = c(Exposure = 1)
 )
 
+#We apply the glex function
 glex_xgb <- glex(XgboostModel, DataXgboost %>% as.matrix()) 
+
+#SHAP decomp. as well as functional decomposition
+#Note that the tuning yields a max depth of 1, leaving us with no interaction
+#terms. Perhaps if we increase the number of cross validation folds and
+#hyperparameter configurations we will get max_depth>1, in which case
+#I have prepared som plots below that can highlight these interactions in
+#our model.
 
 #glex_xgb$shap
 #glex_xgb$m
 #glex_xgb$intercept
 
+#Summing every row in the functional decomposition and all the SHAP values
+#to see en lines 82-85) that this actually yields the predictions made by
+#our model
 sum_m_xgb <- rowSums(glex_xgb$m) + glex_xgb$intercept
 sum_shap_xgb<- rowSums(glex_xgb$shap) + glex_xgb$intercept
 
@@ -73,6 +88,7 @@ cbind(sum_m_xgb,
 
 vi_xgb <- glex_vi(glex_xgb)
 
+glex::autoplot.glex_vi(glex_xgb)
 {
   p_vi1 <- autoplot(vi_xgb, threshold = .05) + 
     labs(title = NULL, tag = "XGBoost")
@@ -112,3 +128,20 @@ vi_xgb <- glex_vi(glex_xgb)
   
   p6
 }
+
+#Waterfall plot
+
+shap<- glex_xgb$shap
+
+wtfl<- t(shap[1,])%>%
+        as.data.frame()%>%
+        rownames_to_column()%>%
+      rename("Feature"="rowname")%>%
+      rename("SHAP"="V1")%>% 
+  filter(SHAP !=0)
+  
+
+waterfall(values = wtfl$SHAP, labels = wtfl$Feature,
+          rect_text_labels = wtfl$Feature)+ 
+  theme(axis.ticks.x=element_blank())
+
