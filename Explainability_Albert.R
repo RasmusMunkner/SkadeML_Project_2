@@ -42,7 +42,7 @@ XgbLearner <- auto_tuner(tuner = tnr("random_search"),
 
 #Training model
 XgbLearner$train(Task)
-XgbLearner$base_learner()$param_set %>% save(file="hyperparameter_tuning_result.Rdata")
+XgbLearner$base_learner()$param_set$values %>% saveRDS(file="hyperparameter_tuning_result.Rdata")
 
 
 #Now with "goodpredictor"
@@ -70,8 +70,7 @@ XgbLearnerGP <- auto_tuner(tuner = tnr("random_search"),
 XgbLearnerGP$train(TaskGP)
 XgbLearnerGP$tuning_result
 XgbLearner$tuning_result
-XgbLearnerGP$base_learner()$param_set %>% save(file="hyperparameter_tuning_result_GP.Rdata")
-tuning_res<-load("hyperparameter_tuning_result_GP.Rdata")
+XgbLearnerGP$base_learner()$param_set$values %>% saveRDS(file="hyperparameter_tuning_result_GP.Rdata")
 
 #We prepare data and labels to use in the native xgboost function
 #This we need to do in order to use the "glex" function later on.
@@ -110,7 +109,6 @@ sum_shap_xgb<- rowSums(glex_xgb$shap) + glex_xgb$intercept
 
 cbind(sum_m_xgb,
       sum_shap_xgb,
-      XgbLearner$predict_newdata(DataXgboost)$response,
       predict(XgboostModel, DataXgboost %>% as.matrix()))
 
 vi_xgb <- glex_vi(glex_xgb)
@@ -118,7 +116,7 @@ vi_xgb <- glex_vi(glex_xgb)
 glex::autoplot.glex_vi(glex_xgb)
 {
   p_vi1 <- autoplot(vi_xgb, threshold = .05) + 
-    labs(title = NULL, tag = "XGBoost")
+     theme(text = element_text(size = 20))  
   p_vi1
 }
 
@@ -130,11 +128,14 @@ glex::autoplot.glex_vi(glex_xgb)
 #}
 
 {
-  p1 <- autoplot(glex_xgb, "Exposure") + labs(subtitle = "XGBoost")
-  p2 <-autoplot(glex_xgb, "BonusMalus") + labs(subtitle = "XGBoost")
-  p3 <-autoplot(glex_xgb, "DrivAge") + labs(subtitle = "XGBoost")
-  p4 <-autoplot(glex_xgb, "LicAge") + labs(subtitle = "XGBoost")
-  grid.arrange(p1,p2,p3,p4, ncol=2)
+  p1 <- autoplot(glex_xgb, "Exposure") + 
+    theme(text = element_text(size = 20))  
+  p2 <-autoplot(glex_xgb, "BonusMalus") + 
+    theme(text = element_text(size = 20))  
+  p3 <-autoplot(glex_xgb, "DrivAge") + 
+    theme(text = element_text(size = 20)) 
+  p<-(p3+p2)/p1
+  p+plot_layout(guides = "collect")
 }
 
 #Plot for interactions
@@ -157,10 +158,14 @@ glex::autoplot.glex_vi(glex_xgb)
 }
 
 #Waterfall plot
-
+#Før: 24131 Nu: 14129
+#Før: 25018 Nu: 15016
+{
 shap<- glex_xgb$shap
+  
+row<-14129
 
-wtfl<- t(shap[1,])%>%
+wtfl<- t(shap[row,])%>%
         as.data.frame()%>%
         rownames_to_column()%>%
       rename("Feature"="rowname")%>%
@@ -168,7 +173,42 @@ wtfl<- t(shap[1,])%>%
   filter(SHAP !=0)
   
 
-waterfall(values = wtfl$SHAP, labels = wtfl$Feature,
-          rect_text_labels = wtfl$Feature)+ 
-  theme(axis.ticks.x=element_blank())
+wtfl<-waterfall(values = wtfl$SHAP, labels = wtfl$Feature,
+                rect_text_labels = wtfl$Feature,
+                rect_text_size = 1.7)
+wtfl_24131<-wtfl+theme(axis.title.y= element_text(size=20),
+           axis.title.x = element_text(size=20),
+           title = element_text(),
+           axis.ticks.x = element_blank())+
+  ggtitle(paste("row_id",24131))+
+  ylab("Prediction - Intercept")+
+  xlab("Features")+
+  ylim(-150,150)
 
+shap<- glex_xgb$shap
+
+row<-15016
+
+wtfl<- t(shap[row,])%>%
+  as.data.frame()%>%
+  rownames_to_column()%>%
+  rename("Feature"="rowname")%>%
+  rename("SHAP"="V1")%>% 
+  filter(SHAP !=0)
+
+
+wtfl<-waterfall(values = wtfl$SHAP, labels = wtfl$Feature,
+                rect_text_labels = wtfl$Feature,
+                rect_text_size = 1.7)
+
+wtfl_25018<-wtfl+theme(axis.title.y= element_text(size=20),
+                       axis.title.x = element_text(size=20),
+                       title = element_text(),
+                       axis.ticks.x = element_blank())+
+  ggtitle(paste("row_id",25018))+
+  ylab("Prediction - Intercept")+
+  xlab("Features")+
+  ylim(-150,150)
+
+grid.arrange(wtfl_24131,wtfl_25018, nrow=2)
+}
