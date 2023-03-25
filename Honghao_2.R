@@ -121,7 +121,7 @@ vi_xgb <- glex_vi(glex_xgb)
 
 
 {
-  p6 <- glex_explain(glex_xgb, id = 2, 
+  p6 <- glex_explain(glex_xgb, id = 15016, 
                      threshold = 0.05,
                      max_interaction = 2,
                      predictors = 
@@ -132,9 +132,10 @@ vi_xgb <- glex_vi(glex_xgb)
 }
 
 #Waterfall plot
-PoliceNr <- which.max(predict(XgboostModel, DataXgboost %>% as.matrix())/DataXgboost$Exposure)
 
-shap<- glex_xgb$shap
+PoliceNr <- 15016
+
+shap <- glex_xgb$shap
 
 wtfl<- t(shap[PoliceNr])%>%
   as.data.frame()%>%
@@ -146,7 +147,7 @@ wtfl<- t(shap[PoliceNr])%>%
 
 waterfall(values = wtfl$SHAP, labels = wtfl$Feature,
           rect_text_labels = wtfl$Feature)+ 
-  theme(axis.ticks.x=element_blank())
+  theme(axis.ticks.x=element_blank()) + ylab("123")
 
 
 ##### Data with modified ClaimAmount #####
@@ -293,4 +294,19 @@ waterfall(values = wtfl$SHAP, labels = wtfl$Feature,
 
 
 ##### Debais
-X <- predict(XgboostModelGP, DataXgboostGP %>% as.matrix())
+DataXgboostGP$Gender <- 1
+Gender1 <- predict(XgboostModelGP, DataXgboostGP %>% as.matrix())
+DataXgboostGP$Gender <- 2
+Gender2 <- predict(XgboostModelGP, DataXgboostGP %>% as.matrix())
+Z <- 12903/20591 * Gender1 + 7688/20591 * Gender2
+
+
+TestData <- data.frame(glex_xgbGP$m)
+TestData$Gender = 0
+TestData$Exposure.Gender = 0
+TestData$Gender.VehPrice = 0
+TestData$Gender.VehBody = 0
+TestData$Gender.VehMaxSpeed = 0
+TestData$BonusMalus.Gender = 0
+Z2 <- rowSums(TestData) + glex_xgbGP$intercept
+summary(Z-Z2)
