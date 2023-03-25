@@ -40,3 +40,4 @@ vignettes/*.pdf
 
 # Data files
 *.csv
+*.RData
