@@ -38,7 +38,7 @@ XgbLearner <- auto_tuner(method = tnr("random_search"),
                          learner = XgbLearnerTemplate,
                          resampling = rsmp("cv", folds = 8),
                          measure = msr("regr.mse"),
-                         terminator = trm("evals", n_evals = 10))
+                         terminator = trm("evals", n_evals = 40))
 
 #Training model
 XgbLearner$train(Task)
@@ -90,7 +90,7 @@ cbind(sum_m_xgb,
 
 vi_xgb <- glex_vi(glex_xgb)
 
-glex::autoplot.glex_vi(glex_xgb)
+#glex::autoplot.glex_vi(glex_xgb)
 {
   p_vi1 <- autoplot(vi_xgb, threshold = .05) + 
     labs(title = NULL, tag = "XGBoost")
@@ -132,10 +132,11 @@ glex::autoplot.glex_vi(glex_xgb)
 }
 
 #Waterfall plot
+PoliceNr <- which.max(predict(XgboostModel, DataXgboost %>% as.matrix())/DataXgboost$Exposure)
 
 shap<- glex_xgb$shap
 
-wtfl<- t(shap[1,])%>%
+wtfl<- t(shap[PoliceNr])%>%
   as.data.frame()%>%
   rownames_to_column()%>%
   rename("Feature"="rowname")%>%
@@ -156,7 +157,7 @@ waterfall(values = wtfl$SHAP, labels = wtfl$Feature,
 DataGP <- Data %>% 
   distinct() %>% 
   #add_column(GoodPredictor = rbinom(nrow(.), 1, prob = 0.5)) %>% 
-  mutate(ClaimAmountMod = 1 * ClaimAmount * (Gender == 1) + ClaimAmount) %>%
+  mutate(ClaimAmountMod = 1 * ClaimAmount * (Gender == 2) + ClaimAmount) %>%
   select(-ClaimAmount)
 
 #Setting regression task
@@ -191,9 +192,12 @@ ResponseXgboostGP <- DataGP %>% select(ClaimAmountMod) %>% unlist()
 
 XgboostModelGP <- xgboost(data=DataXgboostGP %>% as.matrix(),
                         label=ResponseXgboostGP,
-                        nrounds=XgbLearnerGP$tuning_result$nrounds,
-                        params=list(max_depth=XgbLearnerGP$tuning_result$max_depth,
-                                    eta=XgbLearnerGP$tuning_result$eta),
+                        #nrounds=XgbLearnerGP$tuning_result$nrounds,
+                        #params=list(max_depth=XgbLearnerGP$tuning_result$max_depth,
+                        #            eta=XgbLearnerGP$tuning_result$eta),
+                        nrounds=11,
+                        params=list(max_depth=2,
+                                    eta=0.170919907372445),
                         monotone_constraint = c(Exposure = 1)
 )
 
@@ -289,4 +293,4 @@ waterfall(values = wtfl$SHAP, labels = wtfl$Feature,
 
 
 ##### Debais
-predict(XgboostModelGP, DataXgboostGP %>% as.matrix())[PoliceNr]
+X <- predict(XgboostModelGP, DataXgboostGP %>% as.matrix())
