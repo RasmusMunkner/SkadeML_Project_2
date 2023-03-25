@@ -8,7 +8,7 @@ source("Rasmus_Funktioner.R")
 Data <- ReadData("processed_df") %>% 
   mutate(RowNr = row_number()) %>% 
   distinct(across(-RowNr), .keep_all = T) %>% 
-  mutate(ClaimAmountMod = 2 * ClaimAmount * (Gender == 2) + 1 * ClaimAmount * (Gender = 1))
+  mutate(ClaimAmountMod = 2 * ClaimAmount * (Gender == 2) + 1 * ClaimAmount * (Gender == 1))
 
 ####################################################
 #Set up tasks
@@ -88,7 +88,11 @@ XgboostModelModified <- xgboost(data=Data %>% select(-ClaimAmountMod, -RowNr, -C
 
 glex_xgb_mod <- glex(XgboostModelModified, Data %>% select(-ClaimAmountMod, -RowNr, -ClaimAmount) %>% as.matrix()) 
 
-glex_xgb_mod$m <- glex_xgb_mod$m %>% Debiasframe()
+glex_xgb_debias <- glex_xgb
+glex_xgb_debias$m <- glex_xgb$m %>% Debiasframe()
+
+glex_xgb_mod_debias <- glex_xgb_mod
+glex_xgb_mod_debias$m <- glex_xgb_mod$m %>% Debiasframe()
 
 glex_vi(glex_xgb_mod) %>% autoplot(threshold = 5)
 
@@ -96,32 +100,11 @@ glex_vi(glex_xgb_mod) %>% autoplot(threshold = 5)
 #Tables
 
 AugmentedPredictionData %>% 
-  filter(RowNr %in% c(6257, 24131, 25018, 25196, 30503,30563))
+  add_column(Prediction_FuncDebias = glex_xgb_debias$m %>% rowSums() + glex_xgb_debias$intercept) %>% 
+  filter(RowNr %in% c(6257, 24131, 25018, 25196, 30503,30563)) %>% 
+  relocate(RowNr, Prediction_Biased, Prediction_Biased, Prediction_FuncDebias)
 
 AugmentedPredictionDataModified %>% 
-  filter(RowNr %in% c(6257, 24131, 25018, 25196, 30503,30563))
-
-##########################################################
-#Graphs
-AugmentedPredictionData %>% 
-  pivot_longer(names_to = "Predictor", cols = c("Prediction_Biased", "Prediction_Debiased")) %>% 
-  ggplot() +
-  geom_density(aes(x = value, color = Predictor)) +
-  scale_x_log10() +
-  xlab("Estimate") +
-  ylab("Density")
-
-AugmentedPredictionDataModified %>% 
-  pivot_longer(names_to = "Predictor", cols = c("Prediction_Biased", "Prediction_Debiased")) %>% 
-  ggplot() +
-  geom_density(aes(x = pmax(30, value), color = Predictor)) +
-  scale_x_log10() +
-  xlab("Estimate") +
-  ylab("Density")
-
-
-
-
-
-
-
+  add_column(Prediction_FuncDebias = glex_xgb_mod_debias$m %>% rowSums() + glex_xgb_mod_debias$intercept) %>% 
+  filter(RowNr %in% c(6257, 24131, 25018, 25196, 30503,30563)) %>% 
+  relocate(RowNr, OriginalGender, Prediction_Biased, Prediction_Biased, Prediction_FuncDebias)
