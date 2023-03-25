@@ -59,6 +59,9 @@ XgboostModel <- xgboost(data=DataXgboost %>% as.matrix(),
                         nrounds=XgbLearner$tuning_result$nrounds,
                         params=list(max_depth=XgbLearner$tuning_result$max_depth,
                                     eta=XgbLearner$tuning_result$eta),
+                        #nrounds=58,
+                        #params=list(max_depth=1,
+                        #            eta=0.08593541),
                         monotone_constraint = c(Exposure = 1)
 )
 
@@ -133,7 +136,7 @@ vi_xgb <- glex_vi(glex_xgb)
 
 #Waterfall plot
 
-PoliceNr <- 15016
+PoliceNr <- 14129 #15016
 
 shap <- glex_xgb$shap
 
@@ -175,7 +178,7 @@ XgbLearnerGP <- auto_tuner(method = tnr("random_search"),
                            learner = XgbLearnerTemplateGP,
                            resampling = rsmp("cv", folds = 8),
                            measure = msr("regr.mse"),
-                           terminator = trm("evals", n_evals = 40)) #40
+                           terminator = trm("evals", n_evals = 1)) #40
 
 XgbLearnerGP$train(TaskGP)
 XgbLearnerGP$tuning_result
@@ -262,7 +265,7 @@ vi_xgbGP <- glex_vi(glex_xgbGP)
   p5
 }
 
-PoliceNr <- which.min(predict(XgboostModelGP, DataXgboostGP %>% as.matrix()))
+
 predict(XgboostModelGP, DataXgboostGP %>% as.matrix())[PoliceNr]
 {
   p6 <- glex_explain(glex_xgbGP, id = PoliceNr, 
@@ -276,7 +279,7 @@ predict(XgboostModelGP, DataXgboostGP %>% as.matrix())[PoliceNr]
 }
 
 #Waterfall plot
-
+PoliceNr <- 14129
 shap<- glex_xgbGP$shap
 
 wtfl<- t(shap[PoliceNr,])%>%
