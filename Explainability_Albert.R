@@ -36,15 +36,42 @@ XgbLearnerTemplate <- lrn("regr.xgboost",
 
 XgbLearner <- auto_tuner(tuner = tnr("random_search"),
                          learner = XgbLearnerTemplate,
-                         resampling = rsmp("cv", folds = 3),
+                         resampling = rsmp("cv", folds = 8),
                          measure = msr("regr.mse"),
-                         terminator = trm("evals", n_evals = 10))
+                         terminator = trm("evals", n_evals = 40))
 
 #Training model
-#XgbLearner$train(Task)
+XgbLearner$train(Task)
+XgbLearner$base_learner()$param_set %>% save(file="hyperparameter_tuning_result.Rdata")
 
+
+#Now with "goodpredictor"
+DataGP <- Data %>% 
+distinct() %>% 
+  add_column(GoodPredictor = rbinom(nrow(.), 1, prob = 0.5)) %>% 
+  mutate(ClaimAmount = 2 * ClaimAmount * (GoodPredictor == 1) + ClaimAmount * (GoodPredictor = 0))
+
+#Setting regression task
+TaskGP <- DataGP %>%
+  as_task_regr(target = "ClaimAmount")
+
+#Specifying learner
+XgbLearnerTemplateGP <- lrn("regr.xgboost",
+                          eta = to_tune(0, 0.2),
+                          nrounds = to_tune(10, 100),
+                          max_depth = to_tune(1, 3))
+
+XgbLearnerGP <- auto_tuner(tuner = tnr("random_search"),
+                         learner = XgbLearnerTemplate,
+                         resampling = rsmp("cv", folds = 8),
+                         measure = msr("regr.mse"),
+                         terminator = trm("evals", n_evals = 40))
+
+XgbLearnerGP$train(TaskGP)
+XgbLearnerGP$tuning_result
 XgbLearner$tuning_result
-
+XgbLearnerGP$base_learner()$param_set %>% save(file="hyperparameter_tuning_result_GP.Rdata")
+tuning_res<-load("hyperparameter_tuning_result_GP.Rdata")
 
 #We prepare data and labels to use in the native xgboost function
 #This we need to do in order to use the "glex" function later on.
@@ -111,11 +138,11 @@ glex::autoplot.glex_vi(glex_xgb)
 }
 
 #Plot for interactions
-#{
-#  p5 <- autoplot(glex_xgb, c("DrivAge", "Licage")) + 
-#    labs(subtitle = "XGBoost")
-#  p5
-#}
+{
+  p5 <- autoplot(glex_xgb, c("DrivAge", "LicAge")) + 
+    labs(subtitle = "XGBoost")
+  p5
+}
 
 
 {
